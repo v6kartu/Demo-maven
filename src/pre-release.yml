@@ -1,0 +1,47 @@
+trigger: none
+
+parameters:
+  - name: version
+    displayName: version (Format MAJOR.MINOR.PATCH)
+    type: string
+  
+  - name: release_user_email
+    displayName: Release user Email (Enter release use email)
+    type: string
+  
+  - name: release_user
+    displayName: release username (Enter the Name of release user)
+    type: string
+
+variables: 
+  - name: poolName
+    value: SR-Ubuntu-Default
+
+
+stages:
+- stage: Release_Stage
+  displayName: Release Stage
+  jobs:
+  - job: Release_Job
+    pool: $(poolName)
+    displayName: Release Job
+    steps:
+      - checkout: self
+        fetchDepth: 0
+        fetchTags: true
+        persistCredentials: true
+        clean: true
+        displayName: Checkout Code
+      - bash: |
+          git config --global user.email "${{ parameters.release_user_email }}"
+          git config --global user.name "${{ parameters.release_user }}"
+      - task: Maven@4
+        inputs:
+            mavenPomFile: 'pom.xml'
+            mavenOptions: ''
+            javaHomeOption: 'JDKVersion'
+            jdkVersionOption: '1.17'
+            jdkArchitectureOption: 'x64'
+            publishJUnitResults: true 
+            testResultsFiles: '**/surefire-reports/TEST-*.xml'
+            goals: 'gitflow:release-start -B -DreleaseVersion=${{ parameters.version }} gitflow:release-finish'
